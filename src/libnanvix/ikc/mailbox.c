@@ -24,7 +24,7 @@
 
 #include <nanvix/kernel/kernel.h>
 
-#if __TARGET_HAS_MAILBOX
+#if __TARGET_HAS_MAILBOX || __NANVIX_HAS_NETWORK
 
 #include <posix/errno.h>
 

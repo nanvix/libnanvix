@@ -29,7 +29,7 @@
 
 #include "test.h"
 
-#if __TARGET_HAS_MAILBOX
+#if __TARGET_HAS_MAILBOX || __NANVIX_HAS_NETWORK
 
 /**
  * @brief Test's parameters
