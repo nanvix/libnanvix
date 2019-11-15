@@ -94,6 +94,14 @@ one-image: export CFLAGS += -D'NETWORK_DEFAULT_IPADDR="192.169.66.$(shell echo $
 one-image: export CFLAGS += -D'NETWORK_DEFAULT_NETMASK="255.255.255.0"'
 one-image: export CFLAGS += -D'NETWORK_DEFAULT_GATEWAY="192.169.66.$(image_ID)"'
 one-image: export CFLAGS += -D'MAC_DEFAULT_ADDR=0x$(image_ID)'
+one-image: export CFLAGS += -D'NET_PROCESSOR_CCLUSTERS_NUM=$(shell echo $$(($(NB_IMAGES) - 1)))'
+one-image: export CFLAGS += -D'NET_PROCESSOR_IOCLUSTERS_NUM=1'
+one-image: export CFLAGS += -D'NET_PROCESSOR_CLUSTERNUM_MASTER=0'
+one-image: export CFLAGS += -D'NET_PROCESSOR_CLUSTERNUM=$(shell echo $$(($(image_ID) - 1)))'
+one-image: export CFLAGS += -D'NET_PROCESSOR_NOC_CNODES_NUM=$(shell echo $$(($(NB_IMAGES) - 1)))'
+one-image: export CFLAGS += -D'NET_PROCESSOR_NOC_IONODES_NUM=1'
+one-image: export CFLAGS += -D'NET_PROCESSOR_NODENUM_MASTER=0'
+one-image: export CFLAGS += -D'NET_PROCESSOR_NODENUM=$(shell echo $$(($(image_ID) - 1)))'
 one-image: export EXEC = test-driver$(image_ID)
 one-image:
 	@$(MAKE) -C $(SRCDIR) all
