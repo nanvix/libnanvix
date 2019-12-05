@@ -103,6 +103,7 @@ one-image: export CFLAGS += -D'NET_PROCESSOR_NOC_IONODES_NUM=1'
 one-image: export CFLAGS += -D'NET_PROCESSOR_NODENUM_MASTER=0'
 one-image: export CFLAGS += -D'NET_PROCESSOR_NODENUM=$(shell echo $$(($(image_ID) - 1)))'
 one-image: export EXEC = test-driver$(image_ID)
+one-image: export LIBKERNEL := libkernel-$(TARGET)-cluster$(image_ID).a
 one-image:
 	@$(MAKE) -C $(SRCDIR) all
 
