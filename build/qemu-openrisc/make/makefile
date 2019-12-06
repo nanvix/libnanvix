@@ -89,7 +89,7 @@ all-target: make-dirs
 one-image: clean-target
 one-image: export CFLAGS += -D NUMBER_OF_GUESTS=$(NB_IMAGES)
 one-image: export CFLAGS += -D GUEST_ID=$(image_ID)
-one-image: export CFLAGS += -D'NETWORK_REMOTE_ADDR="192.168.66."'
+one-image: export CFLAGS += -D'NETWORK_REMOTE_ADDR="192.169.66."'
 one-image: export CFLAGS += -D'NETWORK_DEFAULT_IPADDR="192.169.66.$(image_ID)"'
 one-image: export CFLAGS += -D'NETWORK_DEFAULT_NETMASK="255.255.255.0"'
 one-image: export CFLAGS += -D'NETWORK_DEFAULT_GATEWAY="192.169.66.$(image_ID)"'
