@@ -25,6 +25,7 @@
 
 #include <nanvix/sys/mailbox.h>
 #include <nanvix/sys/noc.h>
+#include <nanvix/sys/perf.h>
 #include <posix/errno.h>
 
 #include "test.h"
@@ -53,6 +54,32 @@
  * @brief Multiplex test parameters.
  */
 #define TEST_NR_MAILBOX_PAIRS 5
+
+/**
+ * @brief Delay interval
+ */
+#define DELAY_INTERVAL 7
+
+/**
+ * @brief Forces a platform-independent delay for each cluster.
+ *
+ * @param cycles Delay in cycles.
+ *
+ * @author João Vicente Souto
+ */
+static void delay(uint64_t cycles)
+{
+	uint64_t t0, t1;
+
+	for (int i = 0; i < PROCESSOR_CLUSTERS_NUM; ++i)
+	{
+		kclock(&t0);
+
+		do
+			kclock(&t1);
+		while ((t1 - t0) < cycles);
+	}
+}
 
 /*============================================================================*
  * API Test: Create Unlink                                                    *
@@ -168,6 +195,8 @@ static void test_api_mailbox_read_write(void)
 	size_t volume;
 	uint64_t latency;
 	char message[MAILBOX_MSG_SIZE];
+	unsigned i;
+	unsigned j;
 
 	local  = knode_get_num();
 	remote = (local == MASTER_NODENUM) ? SLAVE_NODENUM : MASTER_NODENUM;
@@ -187,32 +216,63 @@ static void test_api_mailbox_read_write(void)
 
 	if (local == MASTER_NODENUM)
 	{
-		for (unsigned i = 0; i < NITERATIONS; i++)
+		for (i = 0; i < NITERATIONS; i++)
 		{
 			kmemset(message, 1, MAILBOX_MSG_SIZE);
 
-			test_assert(kmailbox_awrite(mbx_out, message, MAILBOX_MSG_SIZE) == MAILBOX_MSG_SIZE);
+			/*
+			 * When testing mailboxes from ethernet implementation, the master
+			 * do not know in advance when the connection is establish, thus,
+			 * master need to keep writting until connected.
+			 */
+			while (kmailbox_awrite(mbx_out, message, MAILBOX_MSG_SIZE) != MAILBOX_MSG_SIZE)
+				delay(DELAY_INTERVAL);
 
 			kmemset(message, 0, MAILBOX_MSG_SIZE);
 
-			test_assert(kmailbox_aread(mbx_in, message, MAILBOX_MSG_SIZE) == MAILBOX_MSG_SIZE);
-			test_assert(kmailbox_wait(mbx_in) == 0);
+			j = 0;
+			while (j != MAILBOX_MSG_SIZE)
+			{
+				if (kmailbox_aread(mbx_in, message, MAILBOX_MSG_SIZE) != MAILBOX_MSG_SIZE)
+					continue;
+				if (kmailbox_wait(mbx_in) != 0)
+					continue;
 
-			for (unsigned j = 0; j < MAILBOX_MSG_SIZE; ++j)
-				test_assert(message[j] == 2);
+				for (j = 0; j < MAILBOX_MSG_SIZE; ++j)
+					if (message[j] != 2)
+						break;
+
+				delay(DELAY_INTERVAL);
+			}
+			test_assert(j == MAILBOX_MSG_SIZE);
 		}
 	}
 	else
 	{
-		for (unsigned i = 0; i < NITERATIONS; i++)
+		for (i = 0; i < NITERATIONS; i++)
 		{
 			kmemset(message, 0, MAILBOX_MSG_SIZE);
 
-			test_assert(kmailbox_aread(mbx_in, message, MAILBOX_MSG_SIZE) == MAILBOX_MSG_SIZE);
-			test_assert(kmailbox_wait(mbx_in) == 0);
+			/*
+			 * Since mailboxes from ethernet implementation lacks an adequated
+			 * mechanism to 'wait' an async read, it is necessary to do some
+			 * busy-waiting while waiting for the master message.
+			 */
+			j = 0;
+			while (j != MAILBOX_MSG_SIZE)
+			{
+				if (kmailbox_aread(mbx_in, message, MAILBOX_MSG_SIZE) != MAILBOX_MSG_SIZE)
+					continue;
+				if (kmailbox_wait(mbx_in) != 0)
+					continue;
 
-			for (unsigned j = 0; j < MAILBOX_MSG_SIZE; ++j)
-				test_assert(message[j] == 1);
+				for (j = 0; j < MAILBOX_MSG_SIZE; ++j)
+					if (message[j] != 1)
+						break;
+
+				delay(DELAY_INTERVAL);
+			}
+			test_assert(j == MAILBOX_MSG_SIZE);
 
 			kmemset(message, 2, MAILBOX_MSG_SIZE);
 
