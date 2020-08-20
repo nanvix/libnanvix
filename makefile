@@ -99,7 +99,7 @@ export CFLAGS += -I $(ROOTDIR)/src/lwip/src/include
 export CFLAGS += $(ADDONS)
 
 # Enable sync and portal implementation that uses mailboxes
-export CFLAGS += -D__NANVIX_IKC_USES_ONLY_MAILBOX=0
+export CFLAGS += -D__NANVIX_IKC_USES_ONLY_MAILBOX=1
 
 # Additional C Flags
 include $(BUILDDIR)/makefile.cflags
