@@ -1627,6 +1627,36 @@ static void test_fault_portal_invalid_ioctl(void)
 }
 
 /*============================================================================*
+ * Fault Test: Invalid Set Remote                                             *
+ *============================================================================*/
+
+/**
+ * @brief Fault Test: Invalid Set Remote
+ */
+static void test_fault_portal_invalid_set_remote(void)
+{
+	int portalid;
+	int local;
+	int remote;
+
+	local = knode_get_num();
+	remote = (local == MASTER_NODENUM) ? SLAVE_NODENUM : MASTER_NODENUM;
+
+	test_assert((portalid = kportal_create(local, 0)) >= 0);
+
+	/**
+	 * @note This is a synthetic test since set_remote is not a valid operation
+	 * for portals. Even so, calling the IOCTL with the same code for this
+	 * operation in mailboxes result in a valid call and should be avoided.
+	 * This test ensures that the necessary verifications are being made and that
+	 * this is not possible for portals.
+	 */
+	test_assert(kportal_ioctl(portalid, 9, remote, PORTAL_ANY_PORT) == (-EFAULT));
+
+	test_assert(kportal_close(portalid) == 0);
+}
+
+/*============================================================================*
  * Fault Test: Bad portalid                                                   *
  *============================================================================*/
 
@@ -2480,6 +2510,7 @@ static struct test portal_tests_fault[] = {
 	{ test_fault_portal_null_write,         "[test][portal][fault] portal null write         [passed]" },
 	{ test_fault_portal_invalid_wait,       "[test][portal][fault] portal invalid wait       [passed]" },
 	{ test_fault_portal_invalid_ioctl,      "[test][portal][fault] portal invalid ioctl      [passed]" },
+	{ test_fault_portal_invalid_set_remote, "[test][portal][fault] portal invalid set remote [passed]" },
 	{ test_fault_portal_bad_portalid,       "[test][portal][fault] portal bad portalid       [passed]" },
 	{ NULL,                                  NULL                                                      },
 };
