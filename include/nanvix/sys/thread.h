@@ -49,6 +49,15 @@
 	/**@}*/
 
 	/**
+	 * @name Thread Key Kernel Calls
+	 */
+	/**@{*/
+	extern  int kthread_key_create(key *, void (* )(void *));
+	extern  void * kthread_getspecific(kthread_t, key);
+	extern	int kthread_setspecific(kthread_t, key, void *);
+	/**@}*/	
+	
+	/**
 	 * @name Thread Synchronization Kernel Calls
 	 */
 	/**@{*/
