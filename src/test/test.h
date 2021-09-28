@@ -137,6 +137,7 @@
 	extern void test_ikc(void);
 	extern void test_semaphore(void);
 	extern void test_fence(void);
+	extern void test_key(void);
 
 	/**@}*/
 
