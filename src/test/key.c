@@ -26,7 +26,6 @@
 #include <nanvix/runtime/barrier.h>
 #include "test.h"
 
-#define NKEYS 32
 #define BIG_VALUE 64
 
 PRIVATE void test_key_destroyer(void * arg)
@@ -86,55 +85,29 @@ PRIVATE void test_fault_set(void)
 	test_assert(kthread_setspecific(BIG_VALUE, &value) < 0);
 	test_assert(kthread_setspecific(BIG_VALUE, NULL) < 0);
 }
+PRIVATE void * task_overflow(void * arg)
+{
+	kprintf("%d%", arg);
+	//if (arg != 
+	test_assert(kthread_key_create(arg, NULL) == 0);
+
+	return (kthread_key_create(arg, NULL));
+}
 
 PRIVATE void test_stress_key_overflow(void)
 {
 #if (THREAD_MAX > 1)
 
-	kthread_key_t keys[NKEYS + 1];
+	kthread_key_t keys[THREAD_KEY_MAX + 1];
+	kthread_t tids[THREAD_KEY_MAX + 1];
 
-	for (int i = 0; i < NKEYS; i++)
-		test_assert(kthread_key_create(&keys[i], NULL) == 0);
+	for (int i = 0; i < THREAD_KEY_MAX; i++)
+		thread_create(&tids[i], task_overflow, &keys[i]);
 
-	test_assert(kthread_key_create(&keys[NKEYS], NULL) < 0);
+	thread_create(&tids[THREAD_KEY_MAX], task_overflow, &keys[THREAD_KEY_MAX]);
 
-	for (int j = 0; j < NKEYS; j++)
+	for (int j = 0; j < THREAD_KEY_MAX; j++)
 		test_assert(kthread_key_delete(keys[j]) == 0);
-#endif
-}
-
-PRIVATE void test_stress_key_getset(void)
-{
-#if __TARGET_HAS_SYNC
-
-	kthread_key_t keys[NKEYS];
-	void * values[NKEYS];
-	void * results[NKEYS];
-
-	int nodes[PROCESSOR_CLUSTERS_NUM];
-	barrier_t barrier;
-
-	barrier = barrier_create(nodes, PROCESSOR_CLUSTERS_NUM);
-
-	for (int i = 0; i < NKEYS; i++)
-	{
-		test_assert(kthread_key_create(&keys[i], NULL) == 0);
-		test_assert(kthread_setspecific(keys[i], &values[i]) == 0);
-	}
-
-	barrier_wait(barrier);
-
-	for (int j = 0; j < NKEYS; j++)
-	{
-		test_assert(kthread_getspecific(keys[j], &results[j]) == 0);
-		test_assert(* results[j] == * values[j]);
-	}
-
-	for (int k = 0; k < NKEYS; k++)
-		test_assert(kthread_key_delete(keys[k]) == 0);
-
-	test_assert(barrier_destroy(barrier) == 0);
-
 #endif
 }
 
@@ -156,7 +129,7 @@ PRIVATE struct test key_mgmt_tests_fault[] = {
 
 PRIVATE struct test key_mgmt_tests_stress[] = {
 	{ test_stress_key_overflow,          "[test][key][stress] key overflow                  [passed]" },
-	{ test_stress_key_getset,            "[test][key][stress] key get/setspecific           [passed]" },
+//	{ test_stress_key_getset,            "[test][key][stress] key get/setspecific           [passed]" },
 	{ NULL,                               NULL                                                        },
 };
 
