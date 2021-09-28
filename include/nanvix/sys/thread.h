@@ -51,6 +51,21 @@
 	/**@}*/
 
 	/**
+	 * @brief Thread key.
+	 */
+	typedef int kthread_key_t;
+
+	/**
+	 * @name Thread Key Kernel Calls
+	 */
+	/**@{*/
+	extern  int kthread_key_create(kthread_key_t *, void (*)(void *));
+	extern  int kthread_key_delete(kthread_key_t);
+	extern  int kthread_getspecific(kthread_key_t, void **);
+	extern	int kthread_setspecific(kthread_key_t, void *);
+	/**@}*/
+
+	/**
 	 * @name Thread Synchronization Kernel Calls
 	 */
 	/**@{*/
