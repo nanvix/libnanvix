@@ -107,10 +107,11 @@ PRIVATE void test_stress_key_overflow(void)
 	kthread_key_t keys[THREAD_KEY_MAX + 1];
 	kthread_t tids[THREAD_KEY_MAX + 1];
 
-	for (int i = 0; i < THREAD_KEY_MAX; i++)
+		for (int i = 0; i < (THREAD_KEY_MAX -3); i++){
 		thread_create(&tids[i], task_overflow_pass, &keys[i]);
-
-	thread_create(&tids[THREAD_KEY_MAX], task_overflow_fault, &keys[THREAD_KEY_MAX]);
+		kprintf("%d", i);
+		}
+	//thread_create(&tids[THREAD_KEY_MAX], task_overflow_fault, &keys[THREAD_KEY_MAX]);
 #endif
 }
 
