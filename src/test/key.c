@@ -86,35 +86,26 @@ PRIVATE void test_fault_set(void)
 	test_assert(kthread_setspecific(BIG_VALUE, NULL) < 0);
 }
 
-PRIVATE void * task_overflow_pass(void * arg)
-{
-	test_assert(kthread_key_create(arg, NULL) == 0);
-
-	return (NULL);
-}
-
-PRIVATE void * task_overflow_fault(void * arg)
-{
-	test_assert(kthread_key_create(arg, NULL) < 0);
-
-	return (NULL);
-}
-
 PRIVATE void test_stress_key_overflow(void)
 {
 #if (THREAD_MAX > 1)
 
-	kthread_key_t keys[THREAD_KEY_MAX + 1];
-	kthread_t tids[THREAD_KEY_MAX + 1];
+	kthread_key_t keys[THREAD_KEY_MAX];
 
-		for (int i = 0; i < (THREAD_KEY_MAX -3); i++){
-		thread_create(&tids[i], task_overflow_pass, &keys[i]);
-		kprintf("%d", i);
-		}
-	//thread_create(&tids[THREAD_KEY_MAX], task_overflow_fault, &keys[THREAD_KEY_MAX]);
+	for (int i = 0; i < THREAD_KEY_MAX; i++)
+		test_assert(kthread_key_create(&keys[i], NULL) == 0);
+	
+	test_assert(kthread_key_create(&keys[THREAD_KEY_MAX], NULL) < 0);
+	
+	for (i = 0; i < THREAD_KEY_MAX; i++)
+		test_assert(kthread_key_delete(keys[i]) == 0);
+	
+	test_assert(kthread_key_delete(keys[THREAD_KEY_MAX]) < 0);
 #endif
 }
-
+//int dummy[KEY_MAX];
+//&dummy[0]
+//
 /**
  * @brief API tests.
  */
