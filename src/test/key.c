@@ -24,9 +24,21 @@
 
 #include <nanvix/sys/thread.h>
 #include <nanvix/runtime/barrier.h>
+#include <nanvix/runtime/fence.h>
 #include "test.h"
 
 #define BIG_VALUE 64
+
+
+/*
+ * @brief Fence variable used in tests.
+ */
+PRIVATE struct nanvix_fence fence;
+
+/*
+ * @brief Auxiliar of synchronizations.
+ */
+PRIVATE int nsyncs;
 
 PRIVATE void test_key_destroyer(void * arg)
 {
@@ -35,29 +47,38 @@ PRIVATE void test_key_destroyer(void * arg)
 
 PRIVATE void test_api_key_init(void)
 {
-	kthread_key_t keys[2];
+	kthread_key_t keys[5];
 
 	test_assert(kthread_key_create(&keys[0], &test_key_destroyer) == 0);
 	test_assert(kthread_key_create(&keys[1], NULL) == 0);
 
 	test_assert(kthread_key_delete(keys[0])== 0);
 	test_assert(kthread_key_delete(keys[1])== 0);
-//adicionar teste criar 4 keys + 1
+	
+	for (int i = 0; i < 4; i++)
+		test_assert(kthread_key_create(&keys[i], &test_key_destroyer) == 0);
+	
+	test_assert(kthread_key_create(&keys[5], &test_key_destroyer) < 0);
+	
+	for (int j = 0; j < 4; j++)
+		test_assert(kthread_key_delete(keys[j]) == 0);
+
+	test_assert(kthread_key_delete(keys[5]) < 0);
 }
 
 PRIVATE void test_api_getset_key(void)
 {
 	kthread_key_t key;
-	void * value;
+	void * value[2];
 
 	test_assert(kthread_key_create(&key, NULL) == 0);
 
-	test_assert(kthread_setspecific(key, NULL) == 0);
-	test_assert(kthread_getspecific(key, &value) == 0);
+	test_assert(kthread_setspecific(key, value[0]) == 0);
+	test_assert(kthread_getspecific(key, &value[1]) == 0);
 
-	test_assert(value == NULL);
+	test_assert(value[0] == value[1]);
 
-	test_assert(kthread_key_delete(key)== 0);
+	test_assert(kthread_key_delete(key) == 0);
 
 }
 
@@ -86,21 +107,43 @@ PRIVATE void test_fault_set(void)
 	test_assert(kthread_setspecific(BIG_VALUE, NULL) < 0);
 }
 
-PRIVATE void test_stress_key_overflow(void)
+PRIVATE * void task_create(void * arg)
 {
-#if (THREAD_MAX > 1)
 
-	kthread_key_t keys[THREAD_KEY_MAX];
+	test_assert(kthread_setspecific(arg->key, arg->dummy) == 0);
 
-	for (int i = 0; i < THREAD_KEY_MAX; i++)
-		test_assert(kthread_key_create(&keys[i], NULL) == 0);
+	test_assert(kthread_setspecific(arg->key, &arg->dummy) == 0);
+}
+
+PRIVATE	void test_stress_key_getset(void)
+{	
+#if (THREAD_MAX > 2)
 	
-	test_assert(kthread_key_create(&keys[THREAD_KEY_MAX], NULL) < 0);
+	struct args
+	{
+	kthread_key_t key;
+	void * dummy;
+	} args[THREAD_KEY_MAX];
 	
-	for (i = 0; i < THREAD_KEY_MAX; i++)
-		test_assert(kthread_key_delete(keys[i]) == 0);
+	kthread_t tids[NTHREADS];
+	nsyncs = 0;
 	
-	test_assert(kthread_key_delete(keys[THREAD_KEY_MAX]) < 0);
+		test_assert(nanvix_fence_init(&fence, NTHREADS) == 0);
+
+		for (int i = 0; i < THREAD_KEY_MAX; i++)
+			test_assert(kthread_create(&tids[i], &task_create, &args[i]) == 0);
+
+	//	for (int i = 0; i < THREAD_KEY_MAX; j++)
+	//		test_assert(kthread_setspecific(keys[j], &dummy[j]) == 0);
+	
+	//	for (int k = 0; k < THREAD_KEY_MAX; k++)
+	//		test_assert(kthread_getspecific(keys[k], (void *) dummy[k]) == 0);
+
+	//	for (int l = 0; l < THREAD_KEY_MAX; l++)
+	//		test_assert(kthread_key_delete(keys[l]) == 0);
+
+	//test_assert(nanvix_fence_destroy(&fence) == 0);
+		
 #endif
 }
 //int dummy[KEY_MAX];
@@ -123,8 +166,7 @@ PRIVATE struct test key_mgmt_tests_fault[] = {
 };
 
 PRIVATE struct test key_mgmt_tests_stress[] = {
-	{ test_stress_key_overflow,          "[test][key][stress] key overflow                  [passed]" },
-//	{ test_stress_key_getset,            "[test][key][stress] key get/setspecific           [passed]" },
+	//{ test_stress_key_getset,            "[test][key][stress] key get/setspecific           [passed]" },
 	{ NULL,                               NULL                                                        },
 };
 
