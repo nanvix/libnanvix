@@ -107,48 +107,50 @@ PRIVATE void test_fault_set(void)
 	test_assert(kthread_setspecific(BIG_VALUE, NULL) < 0);
 }
 
-PRIVATE * void task_create(void * arg)
+struct test_args
 {
+	kthread_key_t key;
+	void * dummy;
 
-	test_assert(kthread_setspecific(arg->key, arg->dummy) == 0);
+} arg_tests[NTHREADS];
 
-	test_assert(kthread_setspecific(arg->key, &arg->dummy) == 0);
+PRIVATE void * task_create(void * arg)
+{
+	struct test_args *args = arg; 
+
+	test_assert(kthread_setspecific(args->key, &args->dummy) == 0);
+
+	test_assert(kthread_setspecific(args->key, &args->dummy) == 0);
+	
+	return (NULL);
 }
 
 PRIVATE	void test_stress_key_getset(void)
 {	
 #if (THREAD_MAX > 2)
 	
-	struct args
-	{
-	kthread_key_t key;
-	void * dummy;
-	} args[THREAD_KEY_MAX];
-	
 	kthread_t tids[NTHREADS];
 	nsyncs = 0;
 	
-		test_assert(nanvix_fence_init(&fence, NTHREADS) == 0);
+	test_assert(nanvix_fence_init(&fence, NTHREADS) == 0);
 
 		for (int i = 0; i < THREAD_KEY_MAX; i++)
-			test_assert(kthread_create(&tids[i], &task_create, &args[i]) == 0);
+			test_assert(kthread_key_create(&arg_tests[i].key, NULL) == 0);
 
-	//	for (int i = 0; i < THREAD_KEY_MAX; j++)
-	//		test_assert(kthread_setspecific(keys[j], &dummy[j]) == 0);
-	
-	//	for (int k = 0; k < THREAD_KEY_MAX; k++)
-	//		test_assert(kthread_getspecific(keys[k], (void *) dummy[k]) == 0);
+		for (int i = 0; i < NTHREADS; i++)
+			test_assert(kthread_create(&tids[i], task_create, &arg_tests[i]) == 0);
+		
+		for (int i = 0; i < NTHREADS; i++)
+			test_assert(kthread_join(tids[i], NULL) == 0);
 
-	//	for (int l = 0; l < THREAD_KEY_MAX; l++)
-	//		test_assert(kthread_key_delete(keys[l]) == 0);
+		for (int i = 0; i < THREAD_KEY_MAX; i++)
+			test_assert(kthread_key_delete(arg_tests[i].key) == 0);
 
-	//test_assert(nanvix_fence_destroy(&fence) == 0);
+	test_assert(nanvix_fence_destroy(&fence) == 0);
 		
 #endif
 }
-//int dummy[KEY_MAX];
-//&dummy[0]
-//
+
 /**
  * @brief API tests.
  */
@@ -166,7 +168,7 @@ PRIVATE struct test key_mgmt_tests_fault[] = {
 };
 
 PRIVATE struct test key_mgmt_tests_stress[] = {
-	//{ test_stress_key_getset,            "[test][key][stress] key get/setspecific           [passed]" },
+	{ test_stress_key_getset,            "[test][key][stress] key get/setspecific           [passed]" },
 	{ NULL,                               NULL                                                        },
 };
 
