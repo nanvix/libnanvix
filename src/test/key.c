@@ -70,6 +70,7 @@ PRIVATE void test_api_getset_key(void)
 {
 	kthread_key_t key;
 	void * value[2];
+	*value = (void *) 0xaabbcc;
 
 	test_assert(kthread_key_create(&key, NULL) == 0);
 
@@ -119,6 +120,8 @@ PRIVATE void * task_create(void * arg)
 	struct test_args *args = arg; 
 
 	test_assert(kthread_setspecific(args->key, &args->dummy) == 0);
+
+	test_assert(nanvix_fence(&fence) == 0);	
 
 	test_assert(kthread_setspecific(args->key, &args->dummy) == 0);
 	
