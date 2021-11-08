@@ -28,7 +28,7 @@
 #include "test.h"
 
 #define BIG_VALUE 64
-
+#define FIRST_VALUE  0xaabbccdd
 
 /*
  * @brief Fence variable used in tests.
@@ -70,7 +70,7 @@ PRIVATE void test_api_getset_key(void)
 {
 	kthread_key_t key;
 	void * value[2];
-	*value = (void *) 0xaabbcc;
+	*value = (void *) FIRST_VALUE;
 
 	test_assert(kthread_key_create(&key, NULL) == 0);
 
@@ -117,13 +117,13 @@ struct test_args
 
 PRIVATE void * task_create(void * arg)
 {
-	struct test_args *args = arg; 
+	int args = *((int *) arg); 
 
-	test_assert(kthread_setspecific(args->key, &args->dummy) == 0);
+	test_assert(kthread_setspecific(arg_tests[args].key, &arg_tests[args].dummy) == 0);
 
 	test_assert(nanvix_fence(&fence) == 0);	
 
-	test_assert(kthread_setspecific(args->key, &args->dummy) == 0);
+	test_assert(kthread_getspecific(arg_tests[args].key, &arg_tests[args].dummy) == 0);
 	
 	return (NULL);
 }
@@ -141,7 +141,7 @@ PRIVATE	void test_stress_key_getset(void)
 			test_assert(kthread_key_create(&arg_tests[i].key, NULL) == 0);
 
 		for (int i = 0; i < NTHREADS; i++)
-			test_assert(kthread_create(&tids[i], task_create, &arg_tests[i]) == 0);
+			test_assert(kthread_create(&tids[i], task_create, (void *) &i) == 0);
 		
 		for (int i = 0; i < NTHREADS; i++)
 			test_assert(kthread_join(tids[i], NULL) == 0);
