@@ -42,7 +42,10 @@ PRIVATE int nsyncs;
 
 PRIVATE void test_key_destroyer(void * arg)
 {
-	UNUSED(arg);
+	kthread_key_t key = *((kthread_key_t *) arg);
+	
+	test_assert(kthread_setspecific(key, NULL) == 0);
+	test_assert(kthread_key_delete(key) == 0);
 }
 
 PRIVATE void test_api_key_init(void)
@@ -54,12 +57,12 @@ PRIVATE void test_api_key_init(void)
 
 	test_assert(kthread_key_delete(keys[0])== 0);
 	test_assert(kthread_key_delete(keys[1])== 0);
-	
+
 	for (int i = 0; i < 4; i++)
 		test_assert(kthread_key_create(&keys[i], &test_key_destroyer) == 0);
-	
+
 	test_assert(kthread_key_create(&keys[5], &test_key_destroyer) < 0);
-	
+
 	for (int j = 0; j < 4; j++)
 		test_assert(kthread_key_delete(keys[j]) == 0);
 
@@ -83,6 +86,13 @@ PRIVATE void test_api_getset_key(void)
 
 }
 
+PRIVATE void test_api_destructor(void)
+{
+	kthread_key_t key;
+
+	test_assert(kthread_key_create(&key, &test_key_destroyer) == 0);
+	test_key_destroyer(&key);
+}
 PRIVATE void test_fault_key_init(void)
 {
 	test_assert(kthread_key_create(NULL, &test_key_destroyer) < 0);
@@ -115,34 +125,36 @@ struct test_args
 
 } arg_tests[NTHREADS];
 
-PRIVATE void * task_create(void * arg)
+PRIVATE void * stress_key_task(void * arg)
 {
-	int args = *((int *) arg); 
+	int args = *((int *) arg);
 
 	test_assert(kthread_setspecific(arg_tests[args].key, &arg_tests[args].dummy) == 0);
 
-	test_assert(nanvix_fence(&fence) == 0);	
+	test_assert(nanvix_fence(&fence) == 0);
 
 	test_assert(kthread_getspecific(arg_tests[args].key, &arg_tests[args].dummy) == 0);
-	
+
+	test_assert(nanvix_fence(&fence) == 0);
+
 	return (NULL);
 }
 
 PRIVATE	void test_stress_key_getset(void)
-{	
+{
 #if (THREAD_MAX > 2)
-	
+
 	kthread_t tids[NTHREADS];
 	nsyncs = 0;
-	
+
 	test_assert(nanvix_fence_init(&fence, NTHREADS) == 0);
 
 		for (int i = 0; i < THREAD_KEY_MAX; i++)
 			test_assert(kthread_key_create(&arg_tests[i].key, NULL) == 0);
 
 		for (int i = 0; i < NTHREADS; i++)
-			test_assert(kthread_create(&tids[i], task_create, (void *) &i) == 0);
-		
+			test_assert(kthread_create(&tids[i], stress_key_task, (void *) &i) == 0);
+
 		for (int i = 0; i < NTHREADS; i++)
 			test_assert(kthread_join(tids[i], NULL) == 0);
 
@@ -150,16 +162,43 @@ PRIVATE	void test_stress_key_getset(void)
 			test_assert(kthread_key_delete(arg_tests[i].key) == 0);
 
 	test_assert(nanvix_fence_destroy(&fence) == 0);
-		
+
 #endif
 }
 
+PRIVATE void test_stress_destructor(void)
+{
+#if (THREAD_MAX > 2)
+	
+	kthread_t tids[NTHREADS];
+	nsyncs = 0;
+	
+	test_assert(nanvix_fence_init(&fence, NTHREADS) == 0);
+	
+		for (int i = 0; i < THREAD_KEY_MAX; i++)
+			test_assert(kthread_key_create(&arg_tests[i].key, &test_key_destroyer) == 0);
+		
+		for (int i = 0; i < NTHREADS; i++)
+			test_assert(kthread_create(&tids[i], stress_key_task, (void *) &i) == 0);
+
+		for (int i = 0; i < NTHREADS; i++)
+			test_assert(kthread_join(tids[i], NULL) == 0);
+
+		for (int i = 0; i < THREAD_KEY_MAX; i++)
+		test_key_destroyer(&arg_tests[i].key);
+	
+	test_assert(nanvix_fence_destroy(&fence) == 0);
+
+#endif
+}
+	
 /**
  * @brief API tests.
  */
 PRIVATE struct test key_mgmt_tests_api[] = {
 	{ test_api_key_init,               "[test][key][api] key create/delete                  [passed]" },
 	{ test_api_getset_key,             "[test][thread][api] key getspecific/ setspecific    [passed]" },
+	{ test_api_destructor,             "[test][thread][api] key destructor		        [passed]" },
 	{ NULL,                            NULL                                                           },
 };
 
@@ -172,6 +211,7 @@ PRIVATE struct test key_mgmt_tests_fault[] = {
 
 PRIVATE struct test key_mgmt_tests_stress[] = {
 	{ test_stress_key_getset,            "[test][key][stress] key get/setspecific           [passed]" },
+	{ test_stress_destructor,            "[test][key][stress] key destructor	        [passed]" },
 	{ NULL,                               NULL                                                        },
 };
 
