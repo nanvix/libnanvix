@@ -85,7 +85,8 @@ int kthread_exit(void *retval)
 		NR_thread_exit,
 		(word_t) retval
 	);
-
+	
+	kprintf("oi 3");
 	/* System call failed. */
 	if (ret < 0)
 	{

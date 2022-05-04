@@ -63,6 +63,7 @@
 	extern  int kthread_key_delete(kthread_key_t);
 	extern  int kthread_getspecific(kthread_key_t, void **);
 	extern	int kthread_setspecific(kthread_key_t, void *);
+	extern  int kthread_key_exit(int *);
 	/**@}*/
 
 	/**

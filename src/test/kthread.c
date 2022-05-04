@@ -243,9 +243,11 @@ static void test_api_kthread_create(void)
 
 	/* Spawn thread. */
 	test_assert(kthread_create(&tid, task, NULL) == 0);
+	kprintf("oi 1");
 
 	/* Wait for thread. */
 	test_assert(kthread_join(tid, NULL) == 0);
+	kprintf("oi 2");
 
 #endif
 }

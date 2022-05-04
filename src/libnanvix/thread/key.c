@@ -126,3 +126,25 @@ PUBLIC int kthread_setspecific(kthread_key_t key, void * value)
 	return (ret);
 }
 
+
+PUBLIC int kthread_key_exit(int * retv)
+{
+
+	int tid, ret;
+
+	tid = kthread_self();
+
+	ret = kcall2(
+		NR_thread_setspecific,
+		(word_t) tid,
+		(word_t) retv
+	);
+
+	if (ret < 0)
+	{
+		errno = -ret;
+		return (-1);
+	}
+
+	return (ret);
+}
