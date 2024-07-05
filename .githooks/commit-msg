@@ -12,7 +12,7 @@ if [ $(echo "$commit_msg_title" | wc -c) -gt $max_length ]; then
     exit 1
 fi
 
-if ! echo "$commit_msg" | grep -q -E '\[(kcall)\] (B|E|F|W): '; then
+if ! echo "$commit_msg" | grep -q -E '\[(kcall|logging)\] (B|E|F|W): '; then
 	echo "Commit message does not match pattern: '[module-name] (B|E|F|W): Short Description"
     exit 1
 fi
