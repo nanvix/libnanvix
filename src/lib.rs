@@ -22,7 +22,7 @@ mod panic;
 // Exports
 //==================================================================================================
 
-pub use kcall::debug;
+pub use kcall::*;
 
 #[macro_export]
 macro_rules! log{
